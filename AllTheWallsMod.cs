@@ -172,18 +172,7 @@ namespace AllTheWalls
 			new ConvertWall(ItemID.MarbleWall,  WallID.MarbleUnsafe),
 			new ConvertWall(ItemID.GraniteWall, WallID.GraniteUnsafe),
 
-			new ConvertWall(ItemID.BlueBrickWall,  WallID.BlueDungeonUnsafe),
-			new ConvertWall(ItemID.BlueSlabWall,  WallID.BlueDungeonSlabUnsafe),
-			new ConvertWall(ItemID.BlueTiledWall,  WallID.BlueDungeonTileUnsafe),
-			new ConvertWall(ItemID.PinkBrickWall, WallID.PinkDungeonUnsafe),
-			new ConvertWall(ItemID.PinkSlabWall,  WallID.PinkDungeonSlabUnsafe),
-			new ConvertWall(ItemID.PinkTiledWall, WallID.PinkDungeonTileUnsafe),
-			new ConvertWall(ItemID.GreenBrickWall, WallID.GreenDungeonUnsafe),
-			new ConvertWall(ItemID.GreenSlabWall,  WallID.GreenDungeonSlabUnsafe),
-			new ConvertWall(ItemID.GreenTiledWall, WallID.GreenDungeonTileUnsafe),
-
 			new ConvertWall(ItemID.ObsidianBrickWall, WallID.ObsidianBrickUnsafe),
-
 
 			new ConvertWall(ItemID.GrassWall, WallID.CorruptGrassUnsafe),
 			new ConvertWall(ItemID.FlowerWall, WallID.CorruptGrassUnsafe),
@@ -207,7 +196,21 @@ namespace AllTheWalls
 			//new ConvertWall(ItemID., WallID., WallID.),
 		};
 
-		internal IDictionary<int, int> mapOriginalWallToItemID;
+        ConvertWall[] dungeonWalls = new ConvertWall[]
+        {
+            new ConvertWall(ItemID.BlueBrickWall,  WallID.BlueDungeonUnsafe),
+            new ConvertWall(ItemID.BlueSlabWall,  WallID.BlueDungeonSlabUnsafe),
+            new ConvertWall(ItemID.BlueTiledWall,  WallID.BlueDungeonTileUnsafe),
+            new ConvertWall(ItemID.PinkBrickWall, WallID.PinkDungeonUnsafe),
+            new ConvertWall(ItemID.PinkSlabWall,  WallID.PinkDungeonSlabUnsafe),
+            new ConvertWall(ItemID.PinkTiledWall, WallID.PinkDungeonTileUnsafe),
+            new ConvertWall(ItemID.GreenBrickWall, WallID.GreenDungeonUnsafe),
+            new ConvertWall(ItemID.GreenSlabWall,  WallID.GreenDungeonSlabUnsafe),
+            new ConvertWall(ItemID.GreenTiledWall, WallID.GreenDungeonTileUnsafe),
+        };
+
+
+        internal IDictionary<int, int> mapOriginalWallToItemID;
 		internal IDictionary<int, int> mapPlaceWallToItemID;
 
 		public AllTheWallsMod()
@@ -250,16 +253,47 @@ namespace AllTheWalls
 			ModRecipe recipe;
 			foreach (var item in convertToUnsafeWalls)
 			{
-				recipe = new ModRecipe(this);
-				recipe.AddIngredient(item.originalWallItemID, 20);
-				recipe.SetResult(mapPlaceWallToItemID[item.newWallID], 20);
-				recipe.AddRecipe();
+                var safeWall = item.originalWallItemID;
+                var unsafeWall = mapPlaceWallToItemID[item.newWallID];
 
-				recipe = new ModRecipe(this);
-				recipe.AddIngredient(mapPlaceWallToItemID[item.newWallID], 20);
-				recipe.SetResult(item.originalWallItemID, 20);
-				recipe.AddRecipe();
+                CreateRecipe(safeWall, unsafeWall);
+                CreateRecipe(unsafeWall, safeWall);
 			}
+
+            for (var color = 0; color < dungeonWalls.Length; color += 3)
+            {
+                for (var ingredient = color; ingredient < color + 3; ingredient++)
+                {
+                    var ingredientSafeWall = dungeonWalls[ingredient].originalWallItemID;
+                    var ingredientUnsafeWall = mapPlaceWallToItemID[dungeonWalls[ingredient].newWallID];
+
+                    //Convert between safe and unsafe versions of walls
+                    CreateRecipe(ingredientUnsafeWall, ingredientSafeWall);
+                    CreateRecipe(ingredientSafeWall, ingredientUnsafeWall);
+
+                    for (var result = color; result < color + 3; result++)
+                    {
+                        if (ingredient == result)
+                            continue;
+
+                        //Convert between any unsafe walls
+                        var resultUnsafeWall = mapPlaceWallToItemID[dungeonWalls[result].newWallID];
+                        CreateRecipe(ingredientUnsafeWall, resultUnsafeWall);
+
+                        //Convert between any safe walls
+                        var resultSafeWall = dungeonWalls[result].originalWallItemID;
+                        CreateRecipe(ingredientSafeWall, resultSafeWall);
+                    }
+                }
+            }
+
+            void CreateRecipe(int ingredient, int result)
+            {
+                recipe = new ModRecipe(this);
+                recipe.AddIngredient(ingredient, 20);
+                recipe.SetResult(result, 20);
+                recipe.AddRecipe();
+            }
 		}
 
 
